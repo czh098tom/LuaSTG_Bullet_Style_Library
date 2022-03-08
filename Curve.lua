@@ -1,6 +1,9 @@
 CurveLib = {}
 local CurveLib = CurveLib
 
+local __canBeParam = FunctionalWrappers.canBeParam
+local __default = FunctionalWrappers.default
+
 CURVE_REPEAT_SEQUENTIAL = 1
 
 local noInterp = function(x) return x end

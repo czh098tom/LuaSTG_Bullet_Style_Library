@@ -1,3 +1,5 @@
+FunctionalWrappers = {}
+
 --- convert parameters into functions that return value
 --- function -> function
 --- string begin without '@' '$' : keep
@@ -5,7 +7,7 @@
 --- string begin with double '$' : string begin with 1 fewer '$'
 --- string begin with '@' : read parameter of name from target object
 --- string begin with double '@' : string begin with 1 fewer '@'
-function __canBeParam(v)
+function FunctionalWrappers.canBeParam(v)
 	if type(v) == "function" then
 		return v, false
 	elseif type(v) == "string" then
@@ -45,7 +47,7 @@ function __canBeParam(v)
 	return function(self, param) return vv end, true
 end
 
-function __default(a, default)
+function FunctionalWrappers.default(a, default)
 	if a ~= nil then
 		return a
 	else

@@ -1,6 +1,9 @@
 StyleLib = {}
 local StyleLib = StyleLib
 
+local __canBeParam = FunctionalWrappers.canBeParam
+local __default = FunctionalWrappers.default
+
 local STATE_IDLE = 0
 local STATE_INIT = 1
 local STATE_INIT_AND_DEFAULT = 2
