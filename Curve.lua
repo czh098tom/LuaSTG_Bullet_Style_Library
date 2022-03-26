@@ -44,7 +44,7 @@ function Track:init(map, curves)
 	self.map = map
 end
 
-function Track:DoTrack(target, param)
+function Track:BeginTrack(target, param)
 	local track = self
 	local tab = {}
 	local trackCo = {}
@@ -107,14 +107,14 @@ function Event:init(t, func, tIsRelative)
 	self.tIsRelative = tIsRelative
 end
 
-CurveLib.EventTrack = plus.Class()
-local EventTrack = CurveLib.EventTrack
+local EventTrack = plus.Class()
+CurveLib.EventTrack = EventTrack
 function EventTrack:init(events, repeatType)
 	self.events = events
 	self.repeatType = repeatType
 end
 
-function EventTrack:DoTrack(target, param)
+function EventTrack:BeginTrack(target, param)
 	local track = self
 	return { coroutine.create(function()
 		repeat
@@ -131,11 +131,11 @@ function EventTrack:DoTrack(target, param)
 	end) }
 end
 
-function CurveLib.DoTracks(self, tracks, param)
+function CurveLib.BeginTracks(self, tracks, param)
 	param = param or {}
 	local tasks = {}
 	for i = 1, #tracks do
-		local trackTasks = tracks[i]:DoTrack(self, param)
+		local trackTasks = tracks[i]:BeginTrack(self, param)
 		for j = 1, #trackTasks do
 			table.insert(tasks, trackTasks[j])
 		end
@@ -148,6 +148,67 @@ function CurveLib.IsFinished(tasks)
 		if coroutine.status(tasks[i]) ~= 'dead' then return false end
 	end
 	return true
+end
+
+local State = plus.Class()
+CurveLib.State = State
+function State:init(name, tracks)
+	self.name = name or ""
+	self.tracks = tracks
+end
+
+local StateMachine = plus.Class()
+CurveLib.StateMachine = StateMachine
+function StateMachine:init(target, states, param)
+	self.states = {}
+	self.param = param
+	self.target = target
+	for _, v in ipairs(states) do
+		self.states[v.name] = v
+	end
+	self.entryPoint = states[1]
+end
+
+function StateMachine:begin()
+	if self.entryPoint then
+		self.co = CurveLib.BeginTracks(self.target, self.entryPoint.tracks, self.param)
+		self.currentState = self.entryPoint.name
+	end
+end
+
+function StateMachine:proceed()
+	if self.co then
+		for _, v in ipairs(self.co) do
+			if coroutine.status(v) ~= 'dead' then
+				local _, errmsg = coroutine.resume(v)
+				if errmsg then
+					error(tostring(errmsg) .. "\n========== coroutine traceback ==========\n" .. debug.traceback(v)
+						.. "\n========== C traceback ==========")
+				end
+			end
+		end
+	end
+end
+
+function StateMachine:switch(targetName)
+	if not self.states[targetName] then
+		error("State " .. targetName .. " does not exist.")
+	end
+	local state = self.states[targetName]
+	self.co = CurveLib.BeginTracks(self.target, state.tracks, self.param)
+	self.currentState = targetName
+end
+
+function CurveLib.AsStates(tab)
+	local states = {}
+	for _, v in ipairs(tab) do
+		table.insert(states, CurveLib.AsState(v))
+	end
+	return states
+end
+
+function CurveLib.AsState(tab)
+	return State(tab["name"], CurveLib.AsTracks(tab["tracks"]))
 end
 
 function CurveLib.AsTracks(tab)
@@ -208,64 +269,3 @@ function CurveLib.AsEvent(tab)
 end
 
 CurveLib.emptyEv = function() end
-
-local ease = {}
-CurveLib.ease = ease
-
-ease.NoInterp = noInterp
-
-function ease.InSine(x)
-	return 1 - cos(x * 90)
-end
-
-function ease.OutSine(x)
-	return sin(x * 90)
-end
-
-function ease.InOutSine(x)
-	return 0.5 - 0.5 * cos(x * 180)
-end
-
-function ease.InQuad(x)
-	return x * x
-end
-
-function ease.OutQuad(x)
-	return -x * x + 2 * x
-end
-
-function ease.InOutQuad(x)
-	return x < 0.5 and 2 * x * x or -2 * x * x + 4 * x - 1
-end
-
-local mapFunc = {}
-CurveLib.mapFunc = mapFunc
-function mapFunc.SetV2(setRot)
-	if setRot == nil then setRot = true end
-	return function(self, tab)
-		SetV2(self, tab[1], tab[2], (not self.lockRot) and setRot or false, false)
-	end
-end
-
-function mapFunc.SetColorForBlend(blend)
-	return function(self, tab)
-		local a, r, g, b = tab[1], tab[2], tab[3], tab[4]
-		r = r or 255
-		g = g or 255
-		b = b or 255
-		_object.set_color(self, blend, a, r, g, b)
-	end
-end
-
-function mapFunc.PostfixOn(propName, word)
-	return function(self, tab)
-		self[propName] = word .. tab[1]
-	end
-end
-
-function mapFunc.Scale()
-	return function(self, tab)
-		self.hscale = tab[1]
-		self.vscale = tab[1]
-	end
-end

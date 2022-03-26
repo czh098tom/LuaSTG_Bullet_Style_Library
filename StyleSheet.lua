@@ -101,7 +101,7 @@ function Style:Set(target, params)
 
 	target.colli = __default(self.collision(target, params), target.colli)
 	target._blend = __default(self.blend(target, params), target._blend)
-	return CurveLib.DoTracks(target, self.tracks, params)
+	return CurveLib.BeginTracks(target, self.tracks, params)
 end
 
 local StyleSheet = plus.Class()
@@ -150,10 +150,9 @@ function BulletSP:Begin()
 	end
 end
 
-function BulletSP:SetTracks(tracks, params)
-	if self.trackCoroutine then error("已经设置曲线") end
-	self.tracks = tracks
-	self.trackParams = __default(params, {})
+function BulletSP:SetStateMachine(states, params)
+	if self.stateMachine then error("已经设置状态机") end
+	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, {}))
 end
 
 function BulletSP:SetCreate()
@@ -166,14 +165,14 @@ function BulletSP:SetCreateAndIdle()
 	--Print("create & idle")
 	self.styleState = STATE_INIT_AND_DEFAULT
 	self.styleCoroutine = self.styleSheet.creation:Set(self, self.styleSheetParams)
-	self.trackCoroutine = CurveLib.DoTracks(self, self.tracks, self.trackParams)
+	if self.stateMachine then self.stateMachine:begin() end
 end
 
 function BulletSP:SetIdle()
 	--Print("idle")
 	self.styleState = STATE_IDLE
 	self.styleCoroutine = self.styleSheet.idle:Set(self, self.styleSheetParams)
-	self.trackCoroutine = CurveLib.DoTracks(self, self.tracks, self.trackParams)
+	if self.stateMachine then self.stateMachine:begin() end
 end
 
 function BulletSP:SetIdleFromCreateAndIdle()
@@ -230,17 +229,7 @@ function BulletSP:frame()
 			end
 		end
 	end
-	if self.trackCoroutine then
-		for _, v in ipairs(self.trackCoroutine) do
-			if coroutine.status(v) ~= 'dead' then
-				local _, errmsg = coroutine.resume(v)
-                if errmsg then
-                    error(tostring(errmsg) .. "\n========== coroutine traceback ==========\n" .. debug.traceback(v)
-						.. "\n========== C traceback ==========")
-                end
-			end
-		end
-	end
+	if self.stateMachine then self.stateMachine:proceed() end
 
 	if self.styleState == STATE_INIT or self.styleState == STATE_INIT_AND_DEFAULT then
 		for _, v in ipairs(self.sortedMotions) do
@@ -293,10 +282,10 @@ function BulletSP:render()
     end
 end
 
-function BulletSP.Create(tracks, style, motionList, trackParam, styleParam)
+function BulletSP.Create(states, style, motionList, stateParam, styleParam)
 	local b = New(BulletSP)
 	BulletSP.SetStyleSheet(b, style, styleParam)
-	BulletSP.SetTracks(b, tracks, trackParam)
+	BulletSP.SetStateMachine(b, states, stateParam)
 	BulletSP.Begin(b)
 	return b
 end

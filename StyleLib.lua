@@ -24,7 +24,7 @@ function FunctionalWrappers.canBeParam(v)
 						return function(self, param) return param[vs] end, false
 					end
 				else
-					error("无法解析参数表达式：未命名的参数")
+					error("Unable to resolve parameter expression: unnamed parameter")
 				end
 			elseif first == '@' then
 				if l > 1 then
@@ -36,7 +36,7 @@ function FunctionalWrappers.canBeParam(v)
 						return function(self, param) return self[vs] end, false
 					end
 				else
-					error("无法解析参数表达式：未命名的参数")
+					error("Unable to resolve parameter expression: unnamed parameter")
 				end
 			end
 		else
@@ -58,5 +58,6 @@ end
 Include 'THlib\\StyleLib\\Curve.lua'
 Include 'THlib\\StyleLib\\StyleSheet.lua'
 Include 'THlib\\StyleLib\\MotionModule.lua'
+Include 'THlib\\StyleLib\\CurveUtilities.lua'
+Include 'THlib\\StyleLib\\StyleUtilities.lua'
 Include 'THlib\\StyleLib\\BuiltInStyleSheet.lua'
-Include 'THlib\\StyleLib\\Utilities.lua'
