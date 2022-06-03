@@ -58,3 +58,45 @@ function mapFunc.Scale()
 		self.vscale = tab[1]
 	end
 end
+
+local builtIn = {}
+CurveLib.builtIn = builtIn
+--[[
+function builtIn.Uniform(v)
+	assert(v, "V should not be empty.")
+	return CurveLib.AsStates({
+		{
+			{
+				{
+					type = "numerical",
+					mapType = "builtInFunction",
+					mapper = "SetV2",
+					curves = {
+						{ 0, v }
+					}
+				}
+			}
+		}
+	})
+end
+]]
+
+builtIn.Uniform = CurveLib.AsStates({
+	{
+		{
+			{
+				type = "numerical",
+				mapType = "builtInFunction",
+				mapper = "SetV2",
+				curves = {
+					{
+						{{ 0, "$v" }}
+					},
+					{
+						{{ 0, "$r" }}
+					}
+				}
+			}
+		}
+	}
+})

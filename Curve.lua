@@ -3,6 +3,9 @@ local CurveLib = CurveLib
 
 local __canBeParam = FunctionalWrappers.canBeParam
 local __default = FunctionalWrappers.default
+local __notNil = FunctionalWrappers.notNil
+
+local defaultStateName = "__DEFAULT"
 
 CURVE_REPEAT_SEQUENTIAL = 1
 
@@ -11,6 +14,7 @@ local noInterp = function(x) return x end
 local Point = plus.Class()
 CurveLib.Point = Point
 function Point:init(t, val, tIsRelative, interp)
+	__notNil(t)
 	self.t = __canBeParam(t)
 	self.val = __canBeParam(val)
 	self.tIsRelative = tIsRelative
@@ -208,7 +212,8 @@ function CurveLib.AsStates(tab)
 end
 
 function CurveLib.AsState(tab)
-	return State(tab["name"], CurveLib.AsTracks(tab["tracks"]))
+	local tracks = tab["tracks"] or tab[1]
+	return State(tab["name"] or defaultStateName, CurveLib.AsTracks(tracks))
 end
 
 function CurveLib.AsTracks(tab)
@@ -229,43 +234,54 @@ end
 
 function CurveLib.AsNumericalTrack(tab)
 	local map
-	if tab["mapType"] == "property" then
+	local type = tab["mapType"] or "property"
+	if type == "property" then
 		map = tab["mapper"]
-	elseif tab["mapType"] == "function" then
+	elseif type == "function" then
 		map = tab["mapper"]
-	elseif tab["mapType"] == "builtInFunction" then
+	elseif type == "builtInFunction" then
 		local param = tab["mapperParam"]
 		map = CurveLib.mapFunc[tab["mapper"]](param and unpack(param))
 	end
 	local curves = {}
 	for i = 1, #tab["curves"] do
-		table.insert(curves, CurveLib.AsCurve(tab["curves"][i]))
+		local c = CurveLib.AsCurve(tab["curves"][i])
+		if type == "builtInFunction" then c.mapperName = tab["mapper"] end
+		table.insert(curves, c)
 	end
 	return Track(map, curves)
 end
 
 function CurveLib.AsCurve(tab)
 	local points = {}
-	for i = 1, #tab["points"] do
-		table.insert(points, CurveLib.AsPoint(tab["points"][i]))
+	local tabPoints = tab["points"] or tab[1]
+	for i = 1, #tabPoints do
+		table.insert(points, CurveLib.AsPoint(tabPoints[i]))
 	end
 	return Curve(points, tab["offset"], tab["repeatType"])
 end
 
 function CurveLib.AsPoint(tab)
-	return Point(tab["t"], tab["val"], tab["tIsRelative"], CurveLib.ease[tab["interpolation"]])
+	local t, val
+	t = tab["t"] or tab[1]
+	val = tab["val"] or tab[2]
+	return Point(t, val, tab["tIsRelative"], CurveLib.ease[tab["interpolation"]])
 end
 
 function CurveLib.AsEventTrack(tab)
 	local events = {}
-	for i = 1, #tab["events"] do
-		table.insert(events, CurveLib.AsEvent(tab["events"][i]))
+	local tabEvents = tab["events"] or tab[1]
+	for i = 1, #tabEvents do
+		table.insert(events, CurveLib.AsEvent(tabEvents[i]))
 	end
 	return EventTrack(events, tab["repeatType"])
 end
 
 function CurveLib.AsEvent(tab)
-	return Event(tab["t"], tab["action"], tab["tIsRelative"])
+	local t, act
+	t = tab["t"] or tab[1]
+	act = tab["action"] or tab[2]
+	return Event(t, act, tab["tIsRelative"])
 end
 
 CurveLib.emptyEv = function() end

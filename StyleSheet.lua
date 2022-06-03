@@ -9,6 +9,10 @@ local STATE_INIT = 1
 local STATE_INIT_AND_DEFAULT = 2
 local STATE_ELIM = 3
 
+local CACHE_NONE = 0
+local CACHE_IMAGE = 1
+local CACHE_IMAGE_AND_BLEND = 2
+
 function StyleLib.DeriveFromTable(source, derivation)
 	if type(derivation) ~= 'table' then return derivation end
 	if derivation.__remove then return nil end
@@ -40,8 +44,8 @@ end
 local Style = plus.Class()
 StyleLib.Style = Style
 function Style:init(tab)
-	local blendIsConst
 	self.image, self.imgIsConst = __canBeParam(tab.image)
+	self.noImageCaching = __canBeParam(tab.noImageCaching)
 
 	self.horizontalScale = __canBeParam(tab.horizontalScale)
 	self.verticalScale = __canBeParam(tab.verticalScale)
@@ -55,22 +59,78 @@ function Style:init(tab)
 	self.lockRot = __canBeParam(tab.lockRot)
 
 	self.collision = __canBeParam(tab.collision)
+
+	local blendIsConst, redConst, greenConst, blueConst, alphaConst
 	self.blend, blendIsConst = __canBeParam(tab.blend)
+	self.noBlendCaching = __canBeParam(tab.noBlendCaching)
+	self.red, redConst = __canBeParam(tab.red)
+	self.green, greenConst = __canBeParam(tab.green)
+	self.blue, blueConst = __canBeParam(tab.blue)
+	self.alpha, alphaConst = __canBeParam(tab.alpha)
 
 	self.tracks = CurveLib.AsTracks(__default(tab.tracks, {}))
 
-	self.blendIsDefault = blendIsConst and (self.blend() == "" or self.blend() == "mul+alpha")
+	self.immutableBlend = blendIsConst and redConst and greenConst and blueConst and alphaConst
+	if self.immutableBlend then
+		for _, v in ipairs(self.tracks) do
+			if v.mapperName == "SetColorForBlend" then
+				self.immutableBlend = false
+				break
+			end
+		end
+	end
+end
+
+function Style:BuildCacheOf(image, target, params)
+	--[[
+	if self.imgIsConst and not self.noImageCaching then
+		local cacheName = string.format('%s_cache_%X', image, self)
+		if not ImageList[cacheName] then
+			CopyImage(cacheName, image)
+			if self.immutableBlend and not self.noBlendCaching then
+				SetImageState(cacheName, self.blend(target, params), Color(self.alpha(), self.red(), self.green(), self.blue()))
+				target.imageCache = CACHE_IMAGE_AND_BLEND
+			else
+				target._blend = __default(self.blend(target, params), target._blend)
+				target._a = __default(self.alpha(target, params), target._a)
+				target._r = __default(self.red(target, params), target._r)
+				target._g = __default(self.green(target, params), target._g)
+				target._b = __default(self.blue(target, params), target._b)
+				target.imageCache = CACHE_IMAGE
+			end
+		end
+		return cacheName
+	else
+		target.imageCache = CACHE_NONE
+	end
+	]]
 end
 
 function Style:Set(target, params)
 	local image = self.image(target, params)
-	--StyleLib.CacheImg(self.name, img)
+
 	if image ~= nil then
+		target.originalImage = image
+		image = self:BuildCacheOf(image, target, params) or image
 		target.img = image
 		target._a_base = target.a
 		target._b_base = target.b
 		target.hscale = 1
 		target.vscale = 1
+		--[[
+	else
+		if target.imageCache == CACHE_NONE then
+			target._blend = __default(self.blend(target, params), target._blend)
+			target._a = __default(self.alpha(target, params), target._a)
+			target._r = __default(self.red(target, params), target._r)
+			target._g = __default(self.green(target, params), target._g)
+			target._b = __default(self.blue(target, params), target._b)
+		elseif target.imageCache == CACHE_IMAGE or target.imageCache == CACHE_IMAGE_AND_BLEND then
+			image = self:BuildCacheOf(target.originalImage, target, params) or image
+		else
+			error('image of the bullet is missing.')
+		end
+		]]
 	end
 
 	local scale = self.scale(target, params)
@@ -100,7 +160,7 @@ function Style:Set(target, params)
 	target.group = __default(self.group(target, params), target.group)
 
 	target.colli = __default(self.collision(target, params), target.colli)
-	target._blend = __default(self.blend(target, params), target._blend)
+
 	return CurveLib.BeginTracks(target, self.tracks, params)
 end
 
@@ -137,7 +197,7 @@ function BulletSP:init()
 end
 
 function BulletSP:SetStyleSheet(styleSheet, params)
-	if not self.styleState then error("样式表系统目标错误") end
+	if not self.styleState then error("Style sheet system set target failed: invalid target.") end
 	self.styleSheet = styleSheet
 	self.styleSheetParams = __default(params, {})
 end
@@ -151,7 +211,7 @@ function BulletSP:Begin()
 end
 
 function BulletSP:SetStateMachine(states, params)
-	if self.stateMachine then error("已经设置状态机") end
+	if self.stateMachine then error("State machine has already set.") end
 	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, {}))
 end
 
@@ -273,12 +333,16 @@ function BulletSP:remove()
 end
 
 function BulletSP:render()
-    if self._blend and self._a and self._r and self._g and self._b then
-        SetImgState(self, self._blend, self._a, self._r, self._g, self._b)
+    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE then
+		if self._blend and self._a and self._r and self._g and self._b then
+        	SetImgState(self, self._blend, self._a, self._r, self._g, self._b)
+		end
     end
     DefaultRenderFunc(self)
-    if self._blend and self._a and self._r and self._g and self._b then
-        SetImgState(self, '', 255, 255, 255, 255)
+    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE then
+		if self._blend and self._a and self._r and self._g and self._b then
+			SetImgState(self, '', 255, 255, 255, 255)
+		end
     end
 end
 
@@ -287,12 +351,5 @@ function BulletSP.Create(states, style, motionList, stateParam, styleParam)
 	BulletSP.SetStyleSheet(b, style, styleParam)
 	BulletSP.SetStateMachine(b, states, stateParam)
 	BulletSP.Begin(b)
-	return b
-end
-
-function BulletSP.CreateXY(x, y, tracks, style, motionList, trackParam, styleParam)
-	local b = BulletSP.Create(tracks, style, motionList, trackParam, styleParam)
-	b.x = x
-	b.y = y
 	return b
 end

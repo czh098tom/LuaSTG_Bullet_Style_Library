@@ -36,3 +36,17 @@ function StyleSheet:RemoveCreation()
 		}
 	})
 end
+
+function BulletSP.CreateXY(x, y, tracks, style, motionList, trackParam, styleParam)
+	local b = BulletSP.Create(tracks, style, motionList, trackParam, styleParam)
+	b.x = x
+	b.y = y
+	return b
+end
+
+function BulletSP.CreateXYRV(x, y, r, v, style, motionList, styleParam)
+	local b = BulletSP.Create(CurveLib.builtIn.Uniform, style, motionList, { r = r, v = v }, styleParam)
+	b.x = x
+	b.y = y
+	return b
+end

@@ -7,6 +7,7 @@ FunctionalWrappers = {}
 --- string begin with double '$' : string begin with 1 fewer '$'
 --- string begin with '@' : read parameter of name from target object
 --- string begin with double '@' : string begin with 1 fewer '@'
+--- return: warped function, is function represent a const value, is nil
 function FunctionalWrappers.canBeParam(v)
 	if type(v) == "function" then
 		return v, false
@@ -40,7 +41,8 @@ function FunctionalWrappers.canBeParam(v)
 				end
 			end
 		else
-			return function(self, param) return vs end, true
+			local vv = v
+			return function(self, param) return vv end, true
 		end
 	end
 	local vv = v
@@ -53,6 +55,10 @@ function FunctionalWrappers.default(a, default)
 	else
 		return default
 	end
+end
+
+function FunctionalWrappers.notNil(x)
+	assert(x ~= nil, "Value cannot be nil.")
 end
 
 Include 'THlib\\StyleLib\\Curve.lua'
