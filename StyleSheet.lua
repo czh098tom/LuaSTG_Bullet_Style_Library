@@ -13,6 +13,8 @@ local CACHE_NONE = 0
 local CACHE_IMAGE = 1
 local CACHE_IMAGE_AND_BLEND = 2
 
+local EMPTY = {}
+
 function StyleLib.DeriveFromTable(source, derivation)
 	if type(derivation) ~= 'table' then return derivation end
 	if derivation.__remove then return nil end
@@ -132,6 +134,12 @@ function Style:Set(target, params)
 		end
 		]]
 	end
+	
+	target._blend = __default(self.blend(target, params), target._blend)
+	target._a = __default(self.alpha(target, params), target._a)
+	target._r = __default(self.red(target, params), target._r)
+	target._g = __default(self.green(target, params), target._g)
+	target._b = __default(self.blue(target, params), target._b)
 
 	local scale = self.scale(target, params)
 	if scale then
@@ -199,7 +207,7 @@ end
 function BulletSP:SetStyleSheet(styleSheet, params)
 	if not self.styleState then error("Style sheet system set target failed: invalid target.") end
 	self.styleSheet = styleSheet
-	self.styleSheetParams = __default(params, {})
+	self.styleSheetParams = __default(params, EMPTY)
 end
 
 function BulletSP:Begin()
@@ -212,7 +220,7 @@ end
 
 function BulletSP:SetStateMachine(states, params)
 	if self.stateMachine then error("State machine has already set.") end
-	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, {}))
+	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, EMPTY))
 end
 
 function BulletSP:SetCreate()
