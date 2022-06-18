@@ -134,7 +134,7 @@ function Style:Set(target, params)
 		end
 		]]
 	end
-	
+
 	target._blend = __default(self.blend(target, params), target._blend)
 	target._a = __default(self.alpha(target, params), target._a)
 	target._r = __default(self.red(target, params), target._r)
@@ -341,13 +341,13 @@ function BulletSP:remove()
 end
 
 function BulletSP:render()
-    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE then
+    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE or not self.imageCache then
 		if self._blend and self._a and self._r and self._g and self._b then
         	SetImgState(self, self._blend, self._a, self._r, self._g, self._b)
 		end
     end
     DefaultRenderFunc(self)
-    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE then
+    if self.imageCache == CACHE_NONE or self.imageCache == CACHE_IMAGE or not self.imageCache then
 		if self._blend and self._a and self._r and self._g and self._b then
 			SetImgState(self, '', 255, 255, 255, 255)
 		end
