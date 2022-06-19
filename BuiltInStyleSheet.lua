@@ -253,17 +253,33 @@ for i = 1, #lowerLayeredStyles do
 end
 
 local enlightenedShapes = { ball_huge_dark = "ball_huge", ball_light_dark = "ball_light", water_drop_dark = "water_drop" }
+local enlightenedLowers = { ball_huge_dark = true, ball_light_dark = true }
 
 for k, v in pairs(enlightenedShapes) do
 	StyleLib.Default[v] = {}
 	for j = 1, cmax do
-		StyleLib.Default[v][j] = StyleLib.DeriveFrom(StyleLib.Default[k][j], {
-			creation = {
-				blend = "mul+add",
-				tracks = { [1] = { mapperParam = { "mul+add" }}
+		if enlightenedLowers[k] then
+			StyleLib.Default[v][j] = StyleLib.DeriveFrom(StyleLib.Default[k][j], {
+				creation = {
+					blend = "mul+add",
+					tracks = { [1] = { mapperParam = { "mul+add" }}
+					}
+				},
+				idle = { blend = "mul+add" },
+				elimination = {
+					tracks = { [1] = { mapperParam = { "mul+add" }}
+					}
 				}
-			},
-			idle = { blend = "mul+add" }
-		})
+			})
+		else
+			StyleLib.Default[v][j] = StyleLib.DeriveFrom(StyleLib.Default[k][j], {
+				creation = {
+					blend = "mul+add",
+					tracks = { [1] = { mapperParam = { "mul+add" }}
+					}
+				},
+				idle = { blend = "mul+add" }
+			})
+		end
 	end
 end
