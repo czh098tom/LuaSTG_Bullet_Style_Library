@@ -1,11 +1,26 @@
 local cmax = 16
 
+LoadImageGroup('preimg_SP', 'bullet1', 80, 0, 32, 32, 1, 8)
+LoadAnimation('etbreak_SP', 'etbreak', 0, 0, 64, 64, 4, 2, 3)
+
+local etalpha = 192
+local etcolor = {
+	{ 255, 48, 48 },
+	{ 255, 48, 255 },
+	{ 48, 48, 255 },
+	{ 48, 255, 255 },
+	{ 48, 255, 48 },
+	{ 255, 255, 48 },
+	{ 255, 128, 48 },
+	{ 208, 208, 208 },
+}
+
 local baseStyle = {
 	stayOnCreate = "$stay",
 	eliminationMode = "Terminated",
 	eliminationInCreationMode = "Pass",
 	creation = {
-		--image = "preimg1",
+		--image = "preimg_SP1",
 		--layer = LAYER_ENEMY_BULLET - size * 0.001,
 		tracks = {
 			{
@@ -32,7 +47,7 @@ local baseStyle = {
 	},
 	elimination = {
 		group = GROUP_GHOST,
-		--image = "etbreak1",
+		--image = "etbreak_SP",
 		layer = LAYER_ENEMY_BULLET - 50,
 		rot = function() return ran:Float(0, 360) end,
 		scale = function() return ran:Float(0.5, 0.75) end,
@@ -47,7 +62,7 @@ local baseStyle = {
 	},
 	eliminationInCreation = {
 		group = GROUP_GHOST,
-		--image = "preimg1",
+		--image = "preimg_SP1",
 		--layer = LAYER_ENEMY_BULLET_EF - v.size * 0.001,
 		blend = "mul+add",
 		tracks = {
@@ -74,8 +89,13 @@ StyleLib.Effect.etbreak = {}
 for i = 1, cmax do
 	StyleLib.Effect.etbreak[i] = StyleLib.StyleSheet(StyleLib.DeriveFromTable(subDelEff, {
 		elimination = {
-			image = "etbreak" .. i,
-			layer = "$layer"
+			image = "etbreak_SP",
+			layer = "$layer",
+			blend = i == 15 and "" or "mul+add",
+			alpha = etalpha,
+			red = etcolor[int((i + 1) / 2)][1] / (i % 2 + 1),
+			green = etcolor[int((i + 1) / 2)][2] / (i % 2 + 1),
+			blue = etcolor[int((i + 1) / 2)][3] / (i % 2 + 1)
 		}
 	}))
 end
@@ -147,7 +167,7 @@ for k, v in pairs(shapes) do
 			StyleLib.Default[k][j] = StyleLib.StyleSheet(StyleLib.DeriveFromTable(baseStyle, {
 				eliminationInCreationMode = "Pass",
 				creation = {
-					image = "preimg" .. jidx,
+					image = "preimg_SP" .. jidx,
 					layer = LAYER_ENEMY_BULLET_EF - v * 0.001,
 					tracks = { [2] = { curves = { [1] = {points = {{ val = 4 * v }, { val = v }}}}}}
 				}, 
@@ -155,9 +175,17 @@ for k, v in pairs(shapes) do
 					image = k .. jidx,
 					layer = LAYER_ENEMY_BULLET - v * 0.001
 				}, 
-				elimination = { image = "etbreak" .. j, size = v },
+				elimination = {
+					image = "etbreak_SP",
+					size = v,
+					blend = i == 15 and "" or "mul+add",
+					alpha = etalpha,
+					red = etcolor[int((j + 1) / 2)][1] / (j % 2 + 1),
+					green = etcolor[int((j + 1) / 2)][2] / (j % 2 + 1),
+					blue = etcolor[int((j + 1) / 2)][3] / (j % 2 + 1)
+				},
 				eliminationInCreation = {
-					image = "preimg" .. jidx,
+					image = "preimg_SP" .. jidx,
 					layer = LAYER_ENEMY_BULLET_EF - v * 0.001,
 				}
 			}))
@@ -165,7 +193,7 @@ for k, v in pairs(shapes) do
 			StyleLib.Default[k][j] = StyleLib.StyleSheet(StyleLib.DeriveFromTable(baseStyle, {
 				eliminationInCreationMode = "Pass",
 				creation = {
-					image = "preimg" .. jidx, 
+					image = "preimg_SP" .. jidx, 
 					layer = LAYER_ENEMY_BULLET_EF - v * 0.001,
 					tracks = { [2] = { curves = { [1] = {points = {{ val = 4 * v }, { val = v }}}}}}
 				}, 
@@ -173,9 +201,17 @@ for k, v in pairs(shapes) do
 					image = k .. j,
 					layer = LAYER_ENEMY_BULLET - v * 0.001
 				}, 
-				elimination = { image = "etbreak" .. j, size = v },
+				elimination = {
+					image = "etbreak_SP",
+					size = v,
+					blend = i == 15 and "" or "mul+add",
+					alpha = etalpha,
+					red = etcolor[int((j + 1) / 2)][1] / (j % 2 + 1),
+					green = etcolor[int((j + 1) / 2)][2] / (j % 2 + 1),
+					blue = etcolor[int((j + 1) / 2)][3] / (j % 2 + 1)
+				},
 				eliminationInCreation = {
-					image = "preimg" .. jidx,
+					image = "preimg_SP" .. jidx,
 					layer = LAYER_ENEMY_BULLET_EF - v * 0.001,
 				}
 			}))
@@ -190,6 +226,7 @@ for i = 1, #lowerLayeredStyles do
 	for j = 1, cmax do
 		local jidx = int((j + 1) / 2)
 		local size = shapes[lowerLayeredStyles[i]]
+		local j = j
 		shape[j] = StyleLib.DeriveFrom(shape[j], {
 			eliminationMode = "Pass",
 			eliminationInCreationMode = "Pass",

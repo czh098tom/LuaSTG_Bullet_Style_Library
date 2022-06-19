@@ -135,11 +135,13 @@ function Style:Set(target, params)
 		]]
 	end
 
-	target._blend = __default(self.blend(target, params), target._blend)
-	target._a = __default(self.alpha(target, params), target._a)
-	target._r = __default(self.red(target, params), target._r)
-	target._g = __default(self.green(target, params), target._g)
-	target._b = __default(self.blue(target, params), target._b)
+	target._blend = __default(self.blend(target, params), nil)
+	local c = nil
+	if target._blend then c = 255 end
+	target._a = __default(self.alpha(target, params), c)
+	target._r = __default(self.red(target, params), c)
+	target._g = __default(self.green(target, params), c)
+	target._b = __default(self.blue(target, params), c)
 
 	local scale = self.scale(target, params)
 	if scale then
