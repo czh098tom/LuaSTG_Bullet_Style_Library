@@ -261,8 +261,8 @@ function BulletSP:SetEliminationFor(mode, style)
 		local eff = New(BulletSP)
 		eff.x = self.x
 		eff.y = self.y
-		eff.vx = self.dx
-		eff.vy = self.dy
+		eff.vx = self.vx
+		eff.vy = self.vy
 		eff.styleState = STATE_ELIM
 		eff.styleSheetParams = self.styleSheetParams
 		BulletSP.SetEliminationFor(eff, "Keep", style)
