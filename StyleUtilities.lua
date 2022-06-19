@@ -3,6 +3,14 @@ function StyleSheet:DeriveBy(tab)
 	return StyleLib.DeriveFrom(self, tab)
 end
 
+function StyleSheet.AsReplacement(tab)
+	local replace = { __clear = true }
+	for k, v in pairs(tab) do
+		replace[k] = v
+	end
+	return replace
+end
+
 function StyleSheet:WithLayer(layer)
 	return self:DeriveBy({
 		idle = {
@@ -39,7 +47,7 @@ end
 
 function StyleSheet:EliminationAsIfInCreation()
 	return self:DeriveBy({
-		eliminationInCreation = self.src.elimination
+		eliminationInCreation = StyleSheet.AsReplacement(self.src.elimination)
 	})
 end
 
