@@ -37,6 +37,12 @@ function StyleSheet:RemoveCreation()
 	})
 end
 
+function StyleSheet:EliminationAsIfInCreation()
+	return self:DeriveBy({
+		eliminationInCreation = self.src.elimination
+	})
+end
+
 function BulletSP.CreateXY(x, y, tracks, style, motionList, trackParam, styleParam)
 	local b = BulletSP.Create(tracks, style, motionList, trackParam, styleParam)
 	b.x = x
