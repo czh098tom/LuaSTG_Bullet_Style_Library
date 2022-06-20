@@ -15,16 +15,20 @@ local ArrayPool = {}
 for i = 1, 2000 do
 	ArrayPool[i] = {}
 end
+local nArrayPool = 2000
+
 function GetArray(size)
 	if not size then size = 0 end
-	if #ArrayPool > 0 then
-		local arr = ArrayPool[#ArrayPool]
+	if nArrayPool > 0 then
+		local arr = ArrayPool[nArrayPool]
 		local nArr = #arr + 1
 		if nArr <= size then
 			for i = nArr, size do
 				arr[i] = 0
 			end
 		end
+		ArrayPool[nArrayPool] = nil
+		nArrayPool = nArrayPool - 1
 		return arr
 	else
 		local arr = {}
@@ -36,7 +40,8 @@ function GetArray(size)
 end
 
 function ReturnArray(arr)
-	ArrayPool[#ArrayPool + 1] = arr
+	nArrayPool = nArrayPool + 1
+	ArrayPool[nArrayPool] = arr
 end
 
 CurveLib.ReturnArray = ReturnArray
@@ -171,12 +176,12 @@ function CurveLib.BeginTracks(self, tracks, param)
 	local tasks = {}
 	local arrays = {}
 	for i = 1, #tracks do
-		local trackTasks, trackTab = tracks[i]:BeginTrack(self, param)
+		local trackTasks, trackArr = tracks[i]:BeginTrack(self, param)
 		for j = 1, #trackTasks do
 			table.insert(tasks, trackTasks[j])
 		end
-		for j = 1, #trackTab do
-			table.insert(arrays, trackTab[j])
+		if trackArr then
+			table.insert(arrays, trackArr)
 		end
 	end
 	return tasks, arrays

@@ -336,10 +336,12 @@ function BulletSP:frame()
 end
 
 function BulletSP:del()
+	if self.stateMachine then self.stateMachine:Collect() end
 	BulletSP.remove(self)
 end
 
 function BulletSP:kill()
+	if self.stateMachine then self.stateMachine:Collect() end
 	BulletSP.remove(self)
     New(item_faith_minor, self.x, self.y)
 end
