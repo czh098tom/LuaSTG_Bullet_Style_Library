@@ -15,6 +15,8 @@ local CACHE_IMAGE_AND_BLEND = 2
 
 local EMPTY = {}
 
+local ReturnArray = CurveLib.ReturnArray
+
 function StyleLib.DeriveFromTable(source, derivation)
 	if type(derivation) ~= 'table' then return derivation end
 	if derivation.__remove then return nil end
@@ -225,30 +227,38 @@ function BulletSP:SetStateMachine(states, params)
 	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, EMPTY))
 end
 
+function BulletSP:CollectStyleArr()
+	for _, v in ipairs(self.styleArr) do
+		ReturnArray(v)
+	end
+end
+
 function BulletSP:SetCreate()
 	--Print("create")
 	self.styleState = STATE_INIT
-	self.styleCoroutine = self.styleSheet.creation:Set(self, self.styleSheetParams)
+	self.styleCoroutine, self.styleArr = self.styleSheet.creation:Set(self, self.styleSheetParams)
 end
 
 function BulletSP:SetCreateAndIdle()
 	--Print("create & idle")
 	self.styleState = STATE_INIT_AND_DEFAULT
-	self.styleCoroutine = self.styleSheet.creation:Set(self, self.styleSheetParams)
+	self.styleCoroutine, self.styleArr = self.styleSheet.creation:Set(self, self.styleSheetParams)
 	if self.stateMachine then self.stateMachine:begin() end
 end
 
 function BulletSP:SetIdle()
 	--Print("idle")
 	self.styleState = STATE_IDLE
-	self.styleCoroutine = self.styleSheet.idle:Set(self, self.styleSheetParams)
+	BulletSP.CollectStyleArr(self)
+	self.styleCoroutine, self.styleArr = self.styleSheet.idle:Set(self, self.styleSheetParams)
 	if self.stateMachine then self.stateMachine:begin() end
 end
 
 function BulletSP:SetIdleFromCreateAndIdle()
 	--Print("idle")
 	self.styleState = STATE_IDLE
-	self.styleCoroutine = self.styleSheet.idle:Set(self, self.styleSheetParams)
+	BulletSP.CollectStyleArr(self)
+	self.styleCoroutine, self.styleArr = self.styleSheet.idle:Set(self, self.styleSheetParams)
 end
 
 function BulletSP:SetEliminationFor(mode, style)
@@ -271,18 +281,20 @@ function BulletSP:SetEliminationFor(mode, style)
 	elseif mode == "Keep" then
 		self.styleState = STATE_ELIM
 		PreserveObject(self)
-		self.styleCoroutine = style:Set(self, self.styleSheetParams)
+		self.styleCoroutine, self.styleArr = style:Set(self, self.styleSheetParams)
 	end
 end
 
 function BulletSP:SetElimination()
 	--Print("elimination")
+	BulletSP.CollectStyleArr(self)
 	local mode = self.styleSheet.eliminationMode(self, self.styleSheetParams)
 	BulletSP.SetEliminationFor(self, mode, self.styleSheet.elimination)
 end
 
 function BulletSP:SetEliminationInCreation()
 	--Print("eliminationInCreation")
+	BulletSP.CollectStyleArr(self)
 	local mode = self.styleSheet.eliminationInCreationMode(self, self.styleSheetParams)
 	BulletSP.SetEliminationFor(self, mode, self.styleSheet.eliminationInCreation)
 end

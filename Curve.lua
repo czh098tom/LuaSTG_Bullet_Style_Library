@@ -11,6 +11,36 @@ CURVE_REPEAT_SEQUENTIAL = 1
 
 local noInterp = function(x) return x end
 
+local ArrayPool = {}
+for i = 1, 2000 do
+	ArrayPool[i] = {}
+end
+function GetArray(size)
+	if not size then size = 0 end
+	if #ArrayPool > 0 then
+		local arr = ArrayPool[#ArrayPool]
+		local nArr = #arr + 1
+		if nArr <= size then
+			for i = nArr, size do
+				arr[i] = 0
+			end
+		end
+		return arr
+	else
+		local arr = {}
+		for i = 1, size do
+			arr[i] = 0
+		end
+		return arr
+	end
+end
+
+function ReturnArray(arr)
+	ArrayPool[#ArrayPool + 1] = arr
+end
+
+CurveLib.ReturnArray = ReturnArray
+
 local Point = plus.Class()
 CurveLib.Point = Point
 function Point:init(t, val, tIsRelative, interp)
@@ -50,11 +80,12 @@ end
 
 function Track:BeginTrack(target, param)
 	local track = self
-	local tab = {}
+	--local tab = {}
 	local trackCo = {}
-	for i = 1, #track.curves do
-		tab[i] = 0
-	end
+	--for i = 1, #track.curves do
+	--	tab[i] = 0
+	--end
+	local tab = GetArray(#track.curves)
 	for i = 1, #track.curves do
 		local curve = track.curves[i]
 		local tabIdx = i
@@ -100,7 +131,7 @@ function Track:BeginTrack(target, param)
 		end))
 		coroutine.resume(trackCo[i])
 	end
-	return trackCo
+	return trackCo, tab
 end
 
 local Event = plus.Class()
@@ -138,13 +169,17 @@ end
 function CurveLib.BeginTracks(self, tracks, param)
 	param = param or {}
 	local tasks = {}
+	local arrays = {}
 	for i = 1, #tracks do
-		local trackTasks = tracks[i]:BeginTrack(self, param)
+		local trackTasks, trackTab = tracks[i]:BeginTrack(self, param)
 		for j = 1, #trackTasks do
 			table.insert(tasks, trackTasks[j])
 		end
+		for j = 1, #trackTab do
+			table.insert(arrays, trackTab[j])
+		end
 	end
-	return tasks
+	return tasks, arrays
 end
 
 function CurveLib.IsFinished(tasks)
@@ -175,7 +210,7 @@ end
 
 function StateMachine:begin()
 	if self.entryPoint then
-		self.co = CurveLib.BeginTracks(self.target, self.entryPoint.tracks, self.param)
+		self.co, self.arr = CurveLib.BeginTracks(self.target, self.entryPoint.tracks, self.param)
 		self.currentState = self.entryPoint.name
 	end
 end
@@ -194,10 +229,17 @@ function StateMachine:proceed()
 	end
 end
 
+function StateMachine:Collect()
+	for _, v in ipairs(self.arr) do
+		ReturnArray(v)
+	end
+end
+
 function StateMachine:switch(targetName)
 	if not self.states[targetName] then
 		error("State " .. targetName .. " does not exist.")
 	end
+	self:Collect()
 	local state = self.states[targetName]
 	self.co = CurveLib.BeginTracks(self.target, state.tracks, self.param)
 	self.currentState = targetName
