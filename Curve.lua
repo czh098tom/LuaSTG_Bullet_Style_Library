@@ -13,7 +13,7 @@ local noInterp = function(x) return x end
 
 local ArrayPool = {}
 for i = 1, 2000 do
-	ArrayPool[i] = {}
+	ArrayPool[i] = {0, 0, 0}
 end
 local nArrayPool = 2000
 
@@ -21,11 +21,8 @@ function GetArray(size)
 	if not size then size = 0 end
 	if nArrayPool > 0 then
 		local arr = ArrayPool[nArrayPool]
-		local nArr = #arr + 1
-		if nArr <= size then
-			for i = nArr, size do
-				arr[i] = 0
-			end
+		for i = 1, size do
+			arr[i] = 0
 		end
 		ArrayPool[nArrayPool] = nil
 		nArrayPool = nArrayPool - 1
