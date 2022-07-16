@@ -115,17 +115,18 @@ function Track:BeginTrack(target, param)
 				local lastVt
 				while k <= #curve.points do
 					--Print('points: '..#curve.points, 'k: '..k)
-					local tCalculated = curve.points[k].t(target, param)
-					local tRel = curve.points[k].tIsRelative and tCalculated or tCalculated - tSum
-					local vt = curve.points[k].val(target, param)
-					--Print(k,tRel,curve.points[k].tIsRelative,curve.points[k].t(self,param),tSum)
+					local pk = curve.points[k]
+					local tCalculated = pk.t(target, param)
+					local tRel = pk.tIsRelative and tCalculated or tCalculated - tSum
+					local vt = pk.val(target, param)
+					--Print(k,tRel,pk.tIsRelative,pk.t(self,param),tSum)
 					if tRel > 0 then
 						local v0 = lastVt or 0
 						for l = 1, tRel do
 							cyield()
 							tSum = tSum + 1
 							--Print(tSum)
-							tab[tabIdx] = (vt - v0)*(curve.points[k].interp(l / tRel)) + v0
+							tab[tabIdx] = (vt - v0)*(pk.interp(l / tRel)) + v0
 							--Print(tab[tabIdx])
 							track.map(target, tab)
 						end
