@@ -121,20 +121,6 @@ function Style:Set(target, params)
 		target._b_base = target.b
 		target.hscale = 1
 		target.vscale = 1
-		--[[
-	else
-		if target.imageCache == CACHE_NONE then
-			target._blend = __default(self.blend(target, params), target._blend)
-			target._a = __default(self.alpha(target, params), target._a)
-			target._r = __default(self.red(target, params), target._r)
-			target._g = __default(self.green(target, params), target._g)
-			target._b = __default(self.blue(target, params), target._b)
-		elseif target.imageCache == CACHE_IMAGE or target.imageCache == CACHE_IMAGE_AND_BLEND then
-			image = self:BuildCacheOf(target.originalImage, target, params) or image
-		else
-			error('image of the bullet is missing.')
-		end
-		]]
 	end
 
 	target._blend = __default(self.blend(target, params), nil)
@@ -208,29 +194,16 @@ function BulletSP:init()
 	self.layer = LAYER_ENEMY_BULLET
 end
 
-function BulletSP:SetStyleSheet(styleSheet, params)
-	if not self.styleState then error("Style sheet system set target failed: invalid target.") end
-	self.styleSheet = styleSheet
-	self.styleSheetParams = __default(params, EMPTY)
-end
-
-function BulletSP:Begin()
-	if self.styleSheet.stayOnCreate(self, self.styleSheetParams) then
-		BulletSP.SetCreate(self)
-	else
-		BulletSP.SetCreateAndIdle(self)
-	end
-end
-
-function BulletSP:SetStateMachine(states, params)
-	if self.stateMachine then error("State machine has already set.") end
-	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, EMPTY))
-end
-
 function BulletSP:CollectStyleArr()
 	for _, v in ipairs(self.styleArr) do
 		ReturnArray(v)
 	end
+end
+
+function BulletSP:SetStyleSheet(styleSheet, params)
+	if not self.styleState then error("Style sheet system set target failed: invalid target.") end
+	self.styleSheet = styleSheet
+	self.styleSheetParams = __default(params, EMPTY)
 end
 
 function BulletSP:SetCreate()
@@ -299,6 +272,29 @@ function BulletSP:SetEliminationInCreation()
 	BulletSP.SetEliminationFor(self, mode, self.styleSheet.eliminationInCreation)
 end
 
+function BulletSP:Begin()
+	if self.styleSheet.stayOnCreate(self, self.styleSheetParams) then
+		BulletSP.SetCreate(self)
+	else
+		BulletSP.SetCreateAndIdle(self)
+	end
+end
+
+function BulletSP:SetStateMachine(states, params)
+	if self.stateMachine then error("State machine has already set.") end
+	self.stateMachine = CurveLib.StateMachine(self, states, __default(params, EMPTY))
+end
+
+function BulletSP:remove()
+	if self.styleState == STATE_IDLE then
+		BulletSP.SetElimination(self)
+	elseif self.styleState == STATE_INIT or self.styleState == STATE_INIT_AND_DEFAULT then
+		BulletSP.SetEliminationInCreation(self)
+	elseif self.styleState == STATE_ELIM then
+		--PreserveObject(self)
+	end
+end
+
 function BulletSP:frame()
 	if self.styleCoroutine then
 		for _, v in ipairs(self.styleCoroutine) do
@@ -344,16 +340,6 @@ function BulletSP:kill()
 	if self.stateMachine then self.stateMachine:Collect() end
 	BulletSP.remove(self)
     New(item_faith_minor, self.x, self.y)
-end
-
-function BulletSP:remove()
-	if self.styleState == STATE_IDLE then
-		BulletSP.SetElimination(self)
-	elseif self.styleState == STATE_INIT or self.styleState == STATE_INIT_AND_DEFAULT then
-		BulletSP.SetEliminationInCreation(self)
-	elseif self.styleState == STATE_ELIM then
-		--PreserveObject(self)
-	end
 end
 
 function BulletSP:render()

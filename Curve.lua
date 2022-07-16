@@ -7,24 +7,32 @@ local __notNil = FunctionalWrappers.notNil
 
 local defaultStateName = "__DEFAULT"
 
+local ccreate = coroutine.create
+local cyield = coroutine.yield
+local cresume = coroutine.resume
+local cstat = coroutine.status
+
 CURVE_REPEAT_SEQUENTIAL = 1
 
 local noInterp = function(x) return x end
 
 local ArrayPool = {}
-for i = 1, 2000 do
-	ArrayPool[i] = {0, 0, 0}
+for i = 1, 10000 do
+	ArrayPool[i] = {}
 end
-local nArrayPool = 2000
+local nArrayPool = 10000
 
-function GetArray(size)
+local function GetArray(size)
 	if not size then size = 0 end
 	if nArrayPool > 0 then
 		local arr = ArrayPool[nArrayPool]
 		for i = 1, size do
 			arr[i] = 0
 		end
-		ArrayPool[nArrayPool] = nil
+		for i = size + 1, #arr do
+			arr[i] = nil
+		end
+		--ArrayPool[nArrayPool] = nil
 		nArrayPool = nArrayPool - 1
 		return arr
 	else
@@ -36,7 +44,7 @@ function GetArray(size)
 	end
 end
 
-function ReturnArray(arr)
+local function ReturnArray(arr)
 	nArrayPool = nArrayPool + 1
 	ArrayPool[nArrayPool] = arr
 end
@@ -83,6 +91,7 @@ end
 function Track:BeginTrack(target, param)
 	local track = self
 	--local tab = {}
+	--local trackCo = GetArray(#track.curves)
 	local trackCo = {}
 	--for i = 1, #track.curves do
 	--	tab[i] = 0
@@ -92,11 +101,11 @@ function Track:BeginTrack(target, param)
 		local curve = track.curves[i]
 		local tabIdx = i
 
-		table.insert(trackCo, coroutine.create(function()
+		trackCo[i] = ccreate(function()
 			--Print("co")
 			local j = 0
 			while curve.offset(target, param, j) do
-				coroutine.yield()
+				cyield()
 				j = j + 1
 			end
 			--Print("init wait")
@@ -113,7 +122,7 @@ function Track:BeginTrack(target, param)
 					if tRel > 0 then
 						local v0 = lastVt or 0
 						for l = 1, tRel do
-							coroutine.yield()
+							cyield()
 							tSum = tSum + 1
 							--Print(tSum)
 							tab[tabIdx] = (vt - v0)*(curve.points[k].interp(l / tRel)) + v0
@@ -130,8 +139,8 @@ function Track:BeginTrack(target, param)
 					--Print('k: '..k)
 				end
 			until curve.repeatType == nil
-		end))
-		coroutine.resume(trackCo[i])
+		end)
+		cresume(trackCo[i])
 	end
 	return trackCo, tab
 end
@@ -153,7 +162,7 @@ end
 
 function EventTrack:BeginTrack(target, param)
 	local track = self
-	return { coroutine.create(function()
+	return { ccreate(function()
 		repeat
 			local lastT = 0
 			for i = 1, #track.events do
@@ -172,6 +181,7 @@ function CurveLib.BeginTracks(self, tracks, param)
 	param = param or {}
 	local tasks = {}
 	local arrays = {}
+	
 	for i = 1, #tracks do
 		local trackTasks, trackArr = tracks[i]:BeginTrack(self, param)
 		for j = 1, #trackTasks do
@@ -181,12 +191,13 @@ function CurveLib.BeginTracks(self, tracks, param)
 			table.insert(arrays, trackArr)
 		end
 	end
+	
 	return tasks, arrays
 end
 
 function CurveLib.IsFinished(tasks)
 	for i = 1, #tasks do
-		if coroutine.status(tasks[i]) ~= 'dead' then return false end
+		if cstat(tasks[i]) ~= 'dead' then return false end
 	end
 	return true
 end
@@ -220,8 +231,8 @@ end
 function StateMachine:proceed()
 	if self.co then
 		for _, v in ipairs(self.co) do
-			if coroutine.status(v) ~= 'dead' then
-				local _, errmsg = coroutine.resume(v)
+			if cstat(v) ~= 'dead' then
+				local _, errmsg = cresume(v)
 				if errmsg then
 					error(tostring(errmsg) .. "\n========== coroutine traceback ==========\n" .. debug.traceback(v)
 						.. "\n========== C traceback ==========")
@@ -235,6 +246,8 @@ function StateMachine:Collect()
 	for _, v in ipairs(self.arr) do
 		ReturnArray(v)
 	end
+	--ReturnArray(self.co)
+	--ReturnArray(self.arr)
 end
 
 function StateMachine:switch(targetName)
